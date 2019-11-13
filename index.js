@@ -36,7 +36,7 @@ const hash = bcrypt.hashSync(credentials.password, 14);
 credentials.password = hash;
     helper.add(credentials)
     .then(data => {
-            return res.status(401).json({message:  `New details: ${data.username}`})
+            return res.status(401).json({message:  `New details: ${credentials.username}`})
         });
 
 });
