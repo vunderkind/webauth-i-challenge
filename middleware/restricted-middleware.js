@@ -1,4 +1,4 @@
-const helper = require('./hashHelpers');
+const helper = require('../api/hashHelpers.js');
 const bcrypt = require('bcryptjs');
 module.exports = function restricted(req, res, next) {
     // we'll read the username and password from headers

@@ -1,11 +1,11 @@
 const express = require('express');
-const helper = require('./api/hashHelpers');
+const helper = require('./api/hashHelpers.js');
 const bcrypt = require('bcryptjs');
 const restricted = require('./middleware/restricted-middleware');
 const cors = require('cors');
 const helmet = require('helmet');
 const session = require('express-session');
-const cookieprotection = require('./middleware/session');
+// const cookieprotection = require('./middleware/session');
 
 const server = express();
 
@@ -16,21 +16,28 @@ server.use(helmet());
 const port = 5000;
 
 //Adding session supportt
+const sessionConfig = {
+    name: "monkey",
+    secret: "Fight me",
+    cookie: {
+        maxAge: 1000 * 60 * 60,
+        secure: false,
+        httpOnly: true,
+    },
+    resave: false,
+    saveUnintialized: false,
+}
 
 // configure express-session middleware
-server.use(
-  session({
-    name: 'notsession', // default is connect.sid
-    secret: 'nobody tosses a dwarf!',
-    cookie: {
-      maxAge: 1 * 24 * 60 * 60 * 1000,
-      secure: true, // only set cookies over https. Server will not send back a cookie over http.
-    }, // 1 day in milliseconds
-    httpOnly: true, // don't let JS code access cookies. Browser extensions run JS code on your browser!
-    resave: false,
-    saveUninitialized: false,
-  })
-);
+server.use(session(sessionConfig));
+
+function cookieprotected(req, res, next) {
+    if (req.session && req.session.userID) {
+      next();
+    } else {
+      res.status(401).json({ message: 'you shall not pass!!' });
+    }
+  }
 
 
 
@@ -43,7 +50,9 @@ server.get('/', (req, res) => {
     res.status(200).send('<img src="https://media.giphy.com/media/d3Kq5w84bzlBLVDO/giphy.gif" alt="it\'s alive"/>')
 });
 
-server.get('/api/users', cookieprotection, (req, res) => {
+
+//Get a restricted list of users
+server.get('/api/restricted/users', cookieprotected, (req, res) => {
     helper.getAllData()
         .then(data => {
         res.send(data)
@@ -66,9 +75,11 @@ credentials.password = hash;
 
 server.post('/api/login', (req, res) => {
     const {username, password} = req.body;
+    req.session.userID = 'mogwai';
     helper.findByUsername(username)
     .then(user => {
     if(!user || !bcrypt.compareSync(password, user.password)) {
+        req.session.user = user;
         return res.status(401).json({error: `Incorrect Creds`})
     } else {
         return res.status(200).json({message: `Welcome, ${user.username}!`})
